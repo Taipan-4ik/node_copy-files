@@ -9,12 +9,14 @@ const args = process.argv.slice(2);
 function copying(src, dest) {
   if (args.length !== 2 || !src || !dest) {
     console.error(new Error('Two valid arguments must be entered'));
-    process.exit(1);
+
+    return;
   }
 
-  if (args.some((a) => a.startsWith('-'))) {
+  if ([src, dest].some((a) => a.startsWith('-'))) {
     console.error(new Error('Invalid arguments: flags are not allowed'));
-    process.exit(1);
+
+    return;
   }
 
   let copyPath, pastePath;
@@ -26,24 +28,32 @@ function copying(src, dest) {
 
     if (!copyStats.isFile()) {
       console.error(new Error('Only regular files are supported.'));
-      process.exit(1);
-    }
 
-    try {
-      pastePath = fs.realpathSync(path.resolve(dest));
-    } catch {
-      pastePath = path.resolve(dest);
-    }
-
-    if (copyPath === pastePath) {
       return;
     }
+  } catch (err) {
+    console.error(err);
 
+    return;
+  }
+
+  try {
+    pastePath = fs.realpathSync(path.resolve(dest));
+  } catch {
+    pastePath = path.resolve(dest);
+  }
+
+  if (copyPath === pastePath) {
+    return;
+  }
+
+  try {
     const destStats = fs.statSync(pastePath, { throwIfNoEntry: false });
 
     if (destStats && destStats.isDirectory()) {
       console.error(new Error('Destination exists and is a directory.'));
-      process.exit(1);
+
+      return;
     }
 
     const parentDir = path.dirname(pastePath);
@@ -51,13 +61,13 @@ function copying(src, dest) {
 
     if (!parentStats) {
       console.error(new Error('Parent directory does not exist: ' + parentDir));
-      process.exit(1);
+
+      return;
     }
 
     fs.copyFileSync(copyPath, pastePath);
   } catch (err) {
     console.error(err);
-    process.exit(1);
   }
 }
 
